@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Pitch | Skruit AI Practice</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg:#0B0F1C;
+  --accent:#A855F7;
+}
+body{
+  background:var(--bg);
+  color:white;
+  font-family:'Plus Jakarta Sans',sans-serif;
+}
+.glass{
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:1.5rem;
+}
+.score-circle{
+  width:160px;
+  height:160px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:40px;
+  font-weight:800;
+  background:conic-gradient(var(--accent) 0%, rgba(255,255,255,0.05) 0%);
+}
+</style>
+</head>
+
+<body class="p-8">
+
+<div class="max-w-4xl mx-auto space-y-8">
+
+<h1 class="text-3xl font-black">
+The Pitch <span class="text-purple-500">AI Practice</span>
+</h1>
+
+<div class="glass p-6 space-y-4">
+
+<textarea id="manualInput"
+class="w-full bg-black/40 p-4 rounded-xl border border-white/10"
+rows="6"
+placeholder="Or paste your 'Tell me about yourself' answer here..."></textarea>
+
+<div class="flex gap-4">
+<button onclick="startRecording()" class="px-6 py-3 bg-purple-600 rounded-xl">
+Start Recording
+</button>
+
+<button onclick="stopRecording()" class="px-6 py-3 bg-red-600 rounded-xl">
+Stop
+</button>
+
+<button onclick="evaluateAnswer()" class="px-6 py-3 bg-white text-black font-bold rounded-xl">
+Finish & Evaluate
+</button>
+</div>
+
+</div>
+
+<div class="glass p-8 text-center space-y-6">
+
+<div id="scoreCircle" class="score-circle mx-auto">
+0%
+</div>
+
+<div>
+<p id="feedback" class="text-gray-300">
+Your AI feedback will appear here.
+</p>
+</div>
+
+<div class="grid grid-cols-3 gap-6 text-sm">
+
+<div>
+<p>Confidence</p>
+<p id="confidence">0%</p>
+</div>
+
+<div>
+<p>Clarity</p>
+<p id="clarity">0%</p>
+</div>
+
+<div>
+<p>Impact</p>
+<p id="impact">0%</p>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+let transcript = "";
+
+if ('webkitSpeechRecognition' in window) {
+  const recognition = new webkitSpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  recognition.onresult = function(event) {
+    transcript = "";
+    for (let i = 0; i < event.results.length; i++) {
+      transcript += event.results[i][0].transcript;
+    }
+    document.getElementById("manualInput").value = transcript;
+  };
+
+  window.startRecording = () => recognition.start();
+  window.stopRecording = () => recognition.stop();
+}
+
+async function evaluateAnswer() {
+
+  const answer = document.getElementById("manualInput").value;
+
+  if(!answer){
+    alert("Please record or paste your answer first.");
+    return;
+  }
+
+  const res = await fetch("/api/evaluate",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ answer })
+  });
+
+  const data = await res.json();
+
+  updateUI(data);
+}
+
+function updateUI(data){
+
+  document.getElementById("scoreCircle").style.background =
+    `conic-gradient(#A855F7 ${data.overall_score}%, rgba(255,255,255,0.05) 0%)`;
+
+  document.getElementById("scoreCircle").innerText =
+    data.overall_score + "%";
+
+  document.getElementById("confidence").innerText =
+    data.confidence + "%";
+
+  document.getElementById("clarity").innerText =
+    data.clarity + "%";
+
+  document.getElementById("impact").innerText =
+    data.impact + "%";
+
+  document.getElementById("feedback").innerText =
+    data.summary_feedback;
+}
+</script>
+
+</body>
+</html>
